@@ -6,7 +6,7 @@
 
 #define meta(params)
 
-meta(introspect);
+meta(introspect)
 typedef struct {
 	int number;
 	float real_number;
@@ -19,7 +19,7 @@ typedef struct {
 } this_should_be_ignored;
 
 // line comment before introspected struct
-meta(introspect);
+meta(introspect)
 typedef struct {
 	double double_real;
 	int dword;

@@ -308,11 +308,7 @@ int main() {
 	array attributes = malloc_array(sizeof(attribute), MAX_ATTRIBUTES);
 	do {
 		tk = next_token(&tk_ctx);
-		if (tk.type == TK_LINE_COMMENT) {
-			printf("line comment at line %d:\n%.*s\n", tk.line, tk.str.len, tk.str.at);
-		} else if (tk.type == TK_BLOCK_COMMENT) {
-			printf("block comment at line %d:\n%.*s\n", tk.line, tk.str.len, tk.str.at);
-		} else if (tk.type == TK_IDENTIFIER) {
+		if (tk.type == TK_IDENTIFIER) {
 			if (!strcmpslice("meta", tk.str)) {
 				tk = next_token(&tk_ctx);
 				assert(tk.type == TK_OPEN_PAREN);
@@ -330,10 +326,6 @@ int main() {
 					} else {
 						printf("unexpected token at line %d: type(%s), str(%.*s), line(%d)\n", tk.line, get_token_type_str(tk.type), tk.str.len, tk.str.at, tk.line);
 					}
-				}
-				tk = next_token(&tk_ctx);
-				if (tk.type == TK_SEMICOLON) {
-					tk = next_token(&tk_ctx);
 				}
 			}
 
