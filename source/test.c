@@ -6,6 +6,13 @@
 
 #define meta(params)
 
+#define define_min(name, type) \
+	type name(type a, type b) { \
+		return a < b ? a : b; \
+	}
+
+define_min(mini, int);
+
 meta(introspect)
 typedef struct {
 	int number;

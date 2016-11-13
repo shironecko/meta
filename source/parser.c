@@ -21,6 +21,7 @@ char* load_text_file(const char* path) {
 typedef enum {
 	TK_EOF = 0,
 	TK_IDENTIFIER,
+	TK_PRAGMA,
 	TK_SEMICOLON,
 	TK_OPEN_BRACE,
 	TK_CLOSED_BRACE,
@@ -44,6 +45,8 @@ const char* get_token_type_str(TOKEN_TYPE token_type) {
 			return "EOF";
 		case TK_IDENTIFIER:
 			return "INDENTIFIER";
+		case TK_PRAGMA:
+			return "PRAGMA";
 		case TK_SEMICOLON:
 			return "SEMICOLON";
 		case TK_OPEN_BRACE:
@@ -168,6 +171,25 @@ token next_token(tokenizer_ctx* ctx) {
 		}
 		++ctx->at;
 		result.str.len = ctx->at - result.str.at + 1;
+	} else if (*ctx->at == '#') {
+		result.type = TK_PRAGMA;
+		while (1) {
+			++ctx->at;
+			if (*ctx->at == '\\') {
+				do { ++ctx->at; } while (*ctx->at == ' ' || *ctx->at == '\t');
+				if (*ctx->at == '\r') ++ctx->at;
+			    if (*ctx->at == '\n') {
+					++ctx->line;
+					++ctx->at;
+				}
+			}
+
+			if (*ctx->at == '\n') {
+				++ctx->line;
+				break;
+			}
+		}
+		result.str.len = ctx->at - result.str.at;
 	} else if (is_identifier_first_char(*ctx->at)) {
 		result.type = TK_IDENTIFIER;
 		do { ++ctx->at; } while (is_identifier_char(*ctx->at));
@@ -308,6 +330,9 @@ int main() {
 	array attributes = malloc_array(sizeof(attribute), MAX_ATTRIBUTES);
 	do {
 		tk = next_token(&tk_ctx);
+		if (tk.type == TK_PRAGMA) {
+			printf("pragma at line %d: %.*s\n", tk.line, tk.str.len, tk.str.at);
+		}
 		if (tk.type == TK_IDENTIFIER) {
 			if (!strcmpslice("meta", tk.str)) {
 				tk = next_token(&tk_ctx);
