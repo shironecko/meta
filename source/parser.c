@@ -119,12 +119,33 @@ typedef struct {
 	int line;
 } tokenizer_ctx;
 
+char curr(tokenizer_ctx* ctx) {
+	return *ctx->at;
+}
+
+char next(tokenizer_ctx* ctx) {
+	return *(ctx->at + 1);
+}
+
+char advance(tokenizer_ctx* ctx) {
+	char c = *ctx->at;
+	if (c == '\n')
+		++ctx->line;
+
+	++ctx->at;
+	return c;
+}
+
+void backout(tokenizer_ctx* ctx) {
+	--ctx->at;
+	if (*ctx->at == '\n') {
+		--ctx->line;
+	}
+}
+
 void eat_whitespace(tokenizer_ctx* ctx) {
-	while (is_whitespace(*ctx->at)) {
-		if (*ctx->at == '\n') {
-			++ctx->line;
-		}
-		++ctx->at;
+	while (is_whitespace(curr(ctx))) {
+		advance(ctx);
 	}
 }
 
@@ -136,68 +157,62 @@ token next_token(tokenizer_ctx* ctx) {
 	eat_whitespace(ctx);
 	
 	token result = { .str = { .at = ctx->at, .len= 1 }, .line = ctx->line, .type = TK_UNKNOWN };
-	if (!*ctx->at) {
+	if (!curr(ctx)) {
 		result.type = TK_EOF;
-	} else if (*ctx->at == ';') {
+	} else if (curr(ctx) == ';') {
 		result.type = TK_SEMICOLON;
-	} else if (*ctx->at == '{') {
+	} else if (curr(ctx) == '{') {
 		result.type = TK_OPEN_BRACE;
-	} else if (*ctx->at == '}') {
+	} else if (curr(ctx) == '}') {
 		result.type = TK_CLOSED_BRACE;
-	} else if (*ctx->at == '(') {
+	} else if (curr(ctx) == '(') {
 		result.type = TK_OPEN_PAREN;
-	} else if (*ctx->at == ')') {
+	} else if (curr(ctx) == ')') {
 		result.type = TK_CLOSED_PAREN;
-	} else if (*ctx->at == '[') {
+	} else if (curr(ctx) == '[') {
 		result.type = TK_OPEN_BRACKET;
-	} else if (*ctx->at == ']') {
+	} else if (curr(ctx) == ']') {
 		result.type = TK_CLOSED_BRACKET;
-	} else if (*ctx->at == '/' && ctx->at[1] == '/') {
+	} else if (curr(ctx) == '/' && next(ctx) == '/') {
 		result.type = TK_LINE_COMMENT;
-		ctx->at += 2;
-		while (*ctx->at != '\n') {
-			++ctx->at;
+		advance(ctx);
+		advance(ctx);
+		while (curr(ctx) != '\n') {
+			advance(ctx);
 		}
-		++ctx->line;
 		result.str.len = ctx->at - result.str.at + 1;
-	} else if (*ctx->at == '/' && ctx->at[1] == '*') {
+	} else if (curr(ctx) == '/' && next(ctx) == '*') {
 		result.type = TK_BLOCK_COMMENT;
-		ctx->at += 2;
-		while (!(ctx->at[0] == '*' && ctx->at[1] == '/')) {
-			if (*ctx->at == '\n') {
-				++ctx->line;
-			}
-			++ctx->at;
+		advance(ctx);
+		advance(ctx);
+		while (!(curr(ctx) == '*' && next(ctx) == '/')) {
+			advance(ctx);
 		}
-		++ctx->at;
+		advance(ctx);
 		result.str.len = ctx->at - result.str.at + 1;
-	} else if (*ctx->at == '#') {
+	} else if (curr(ctx) == '#') {
 		result.type = TK_PRAGMA;
 		while (1) {
-			++ctx->at;
-			if (*ctx->at == '\\') {
-				do { ++ctx->at; } while (*ctx->at == ' ' || *ctx->at == '\t');
-				if (*ctx->at == '\r') ++ctx->at;
-			    if (*ctx->at == '\n') {
-					++ctx->line;
-					++ctx->at;
-				}
+			advance(ctx);
+			if (curr(ctx) == '\\') {
+				do { advance(ctx); } while (curr(ctx) == ' ' || curr(ctx) == '\t');
+				if (curr(ctx) == '\r') advance(ctx);
+				if (curr(ctx) == '\n') advance(ctx);
 			}
 
-			if (*ctx->at == '\n') {
-				++ctx->line;
+			if (curr(ctx) == '\n') {
 				break;
 			}
 		}
 		result.str.len = ctx->at - result.str.at;
-	} else if (is_identifier_first_char(*ctx->at)) {
+	} else if (is_identifier_first_char(curr(ctx))) {
 		result.type = TK_IDENTIFIER;
-		do { ++ctx->at; } while (is_identifier_char(*ctx->at));
+		do { advance(ctx); } while (is_identifier_char(curr(ctx)));
 		result.str.len = ctx->at - result.str.at;
-		--ctx->at;
+		backout(ctx);
 	}
 
-	++ctx->at;
+	advance(ctx);
 	return result;
 }
 
@@ -421,8 +436,6 @@ int main() {
 					member->name.len, member->name.at, member->name.len, member->name.at);
 		}
 		fprintf(out_file, "\tfclose(file);\n}\n\n");
-
-		printf_struct_def(s);
 	}
 
 	return 0;
