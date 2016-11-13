@@ -34,6 +34,13 @@ typedef struct {
 	char byte_b;
 } test_struct_b;
 
+#include "test.meta.c"
+
 int main() {
+	test_struct_a a = { 42, 3.14f };
+	saveb_test_struct_a(&a, "a.dat");
+	test_struct_a ax = {0};
+	loadb_test_struct_a(&ax, "a.dat");
+	printf("number = %d\nreal_number = %f\n", ax.number, ax.real_number);
 	return 0;
 }

@@ -33,3 +33,6 @@
 
 # Build dir
 build/
+
+# Generated code
+*.meta.c

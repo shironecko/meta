@@ -330,9 +330,6 @@ int main() {
 	array attributes = malloc_array(sizeof(attribute), MAX_ATTRIBUTES);
 	do {
 		tk = next_token(&tk_ctx);
-		if (tk.type == TK_PRAGMA) {
-			printf("pragma at line %d: %.*s\n", tk.line, tk.str.len, tk.str.at);
-		}
 		if (tk.type == TK_IDENTIFIER) {
 			if (!strcmpslice("meta", tk.str)) {
 				tk = next_token(&tk_ctx);
@@ -388,8 +385,43 @@ int main() {
 		/* printf("%4d:%-15s %.*s\n", tk.line, get_token_type_str(tk.type), tk.str.len, tk.str.at); */
 	} while (tk.type != TK_EOF);
 
+	FILE* out_file = fopen("test.meta.c", "w");
+	assert(out_file);
 	for (int i = 0; i < struct_defs.size; ++i) {
 		struct_def* s = arr_get(&struct_defs, i);
+		int introspectible = 0;
+		for (int j = 0; j < s->attributes.size; ++j) {
+			attribute* attr = arr_get(&s->attributes, j);
+			if (attr->type == AT_INTROSPECT) {
+				introspectible = 1;
+				break;
+			}
+		}
+
+		if (!introspectible) {
+			continue;
+		}
+
+		fprintf(out_file, "void saveb_%.*s(%.*s* data, const char* path) {\n",
+				s->name.len, s->name.at, s->name.len, s->name.at);
+		fprintf(out_file, "\tFILE* file = fopen(path, \"wb\");\n");
+		for (int j = 0; j < s->members.size; ++j) {
+			variable_def* member = arr_get(&s->members, j);
+			fprintf(out_file, "\tfwrite(&data->%.*s, sizeof(data->%.*s), 1, file);\n",
+					member->name.len, member->name.at, member->name.len, member->name.at);
+		}
+		fprintf(out_file, "\tfclose(file);\n}\n\n");
+
+		fprintf(out_file, "void loadb_%.*s(%.*s* out, const char* path) {\n",
+				s->name.len, s->name.at, s->name.len, s->name.at);
+		fprintf(out_file, "\tFILE* file = fopen(path, \"rb\");\n");
+		for (int j = 0; j < s->members.size; ++j) {
+			variable_def* member = arr_get(&s->members, j);
+			fprintf(out_file, "\tfread(&out->%.*s, sizeof(out->%.*s), 1, file);\n",
+					member->name.len, member->name.at, member->name.len, member->name.at);
+		}
+		fprintf(out_file, "\tfclose(file);\n}\n\n");
+
 		printf_struct_def(s);
 	}
 
